@@ -20,6 +20,10 @@ use rocket_include_static_resources::static_resources_initialize;
 use rocket_include_static_resources::StaticResponse;
 use rocket_raw_response::RawResponse;
 
+use image::{io::Reader, Luma, Rgb};
+
+use std::io::Cursor;
+
 
 #[get("/")]
 fn index() -> StaticResponse {
@@ -58,12 +62,19 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
 
             // Image processing begins
-            //let mut image =
+            let mut reader = Reader::new(Cursor::new(raw.raw))
+                .with_guessed_format()
+                .expect("Cursor io never fails");
+
+            // Figure out better way to handle unwrapping
+            let img = reader.decode().unwrap();
+            let flip = img.fliph();
+
             let content_type = raw.content_type;
             let file_name = raw.file_name.unwrap_or("Image".to_string());
-            let data = raw.raw;
 
-            Ok(RawResponse::from_vec(data, Some(file_name), content_type))
+
+            Ok(RawResponse::from_vec(flip.into_bytes(), Some(file_name), content_type))
         }
         None => Err("Please input a file."),
     }
