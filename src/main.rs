@@ -58,7 +58,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
 
             // Image processing begins
-            let mut image =
+            //let mut image =
             let content_type = raw.content_type;
             let file_name = raw.file_name.unwrap_or("Image".to_string());
             let data = raw.raw;
