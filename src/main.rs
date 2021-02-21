@@ -1,4 +1,3 @@
-
 #![feature(decl_macro)]
 
 #[macro_use]
@@ -26,7 +25,7 @@ enum ApiCommand {
     Thumbnail,
     RotateLeft,
     RotateRight,
-    Rotate(u16),
+    Rotate(i16),
 }
 
 static help_response: &str =
@@ -57,9 +56,7 @@ fn index() -> StaticResponse {
 fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'static str> {
     let options = MultipartFormDataOptions::with_multipart_form_data_fields(
         vec![
-        // Image processing parameters have a max length of 10
-        MultipartFormDataField::text("params").repetition(Repetition::fixed(10)),
-        // Image has 4MB maximum size
+        MultipartFormDataField::text("params"),
         MultipartFormDataField::raw("image")
             .size_limit(4 * 1024 * 1024)
             .content_type_by_string(Some(mime::IMAGE_STAR))
@@ -87,11 +84,16 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
     match params {
         Some(text_fields) => {
-            for text_field in text_fields {
-                let text = text_field.text;
+
+            let textfield = text_fields.get(0).unwrap();
+            let text = &textfield.text;
+
+            let commands: Vec<&str> = text.split(',').collect();
+
+            for command in commands {
 
                 // Separate text command from int amount - used for resize(n) and rotate(n)
-                let cmd: Vec<&str> = text.split('-').collect();
+                let cmd: Vec<&str> = command.split('-').collect();
 
                 match cmd[0] {
                     "fliph" => {
@@ -107,7 +109,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                         image_parameters.push(ApiCommand::RotateRight);
                     }
                     "rotate" => {
-                        image_parameters.push(ApiCommand::Rotate(cmd[1].parse::<u16>().unwrap()));
+                        image_parameters.push(ApiCommand::Rotate(cmd[1].parse::<i16>().unwrap()));
                     }
                     "grayscale" => {
                         image_parameters.push(ApiCommand::ConvertToGray);
@@ -119,13 +121,14 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                         image_parameters.push(ApiCommand::Thumbnail);
                     }
                     _ => {
-                        Err("Unrecognized command")
+                        return Err("Unrecognized command: GET '/' for allowed commands");
                     }
                 }
             }
         }
-        None => Err("No parameters specified")
-
+        None => {
+            return Err("No parameters specified");
+        }
     }
 
     // Image processing
@@ -138,18 +141,17 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
             // TODO: figure out content type and filename
             let content_type = raw.content_type;
-            let file_name = raw.file_name.unwrap_or("Image".to_string());
+            let file_name = raw.file_name;
 
             let mut ext: Option<&str>= None;
-            if let Some(name) = filename {
-                let stripped_ext = Some(Path::new(name.as_str())
+
+            if let Some(ref name) = file_name {
+                ext = Path::new(name.as_str())
                     .extension()
-                    .and_then(|s|s.to_str())
-                    .unwrap());
-                ext = stripped_ext;
+                    .and_then(|s|s.to_str()).clone();
             }
 
-            let mut format: Option<ImageFormat>;
+            let mut format: Option<ImageFormat> = None;
             if let Some(format_from_ext) = ext {
                 match format_from_ext {
                     "png" => {
@@ -161,7 +163,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                     }
 
                     _ => {
-                        Err("Please upload a .png or .jpg image")
+                        return Err("Please upload a .png or .jpg image");
                     }
                 }
             }
@@ -211,7 +213,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             // write DynamicImage to buffer with some sort of format, then send back to client
             let mut buffer = Vec::new();
             img.write_to(&mut buffer, ImageFormat::Jpeg);
-            Ok(RawResponse::from_vec(buffer, Some(file_name), content_type))
+            Ok(RawResponse::from_vec(buffer, file_name.clone(), content_type))
 
         }
         None => Err("Please input a file."),
