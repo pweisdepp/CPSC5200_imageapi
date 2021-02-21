@@ -28,21 +28,21 @@ enum ApiCommand {
     Rotate(i16),
 }
 
-static help_response: &str =
-    "Process your image using the API:\
-    Params:\
-            'image' - the path to your jpg or png image\
-            'params' - comma-separated commands\
-    Commands:\
-        fliph -> Flip image horizontally\
-        flipv -> Flip image vertically\
-        rotateleft -> Rotate image 90 degrees left\
-        rotateright -> Rotate image 90 degrees right\
-        rotate-N -> Rotate image by N degrees right\
-        grayscale -> Convert the image to grayscale\
-        resize-N -> Resize the image by N percent\
-        thumbnail -> Resize the image to 100x100 thumbnail\
-    Example: \
+static HELP_RESPONSE: &str =
+    "Process your image using the API:\n
+    Params:\n
+            'image' - the path to your jpg or png image\n
+            'params' - comma-separated commands\n
+    Commands:\n
+        fliph -> Flip image horizontally\n
+        flipv -> Flip image vertically\n
+        rotateleft -> Rotate image 90 degrees left\n
+        rotateright -> Rotate image 90 degrees right\n
+        rotate-N -> Rotate image by N degrees right\n
+        grayscale -> Convert the image to grayscale\n
+        resize-N -> Resize the image by N percent\n
+        thumbnail -> Resize the image to 100x100 thumbnail\n
+    Example: \n
     curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/upload";
 
 //TODO: Respond with API command help
