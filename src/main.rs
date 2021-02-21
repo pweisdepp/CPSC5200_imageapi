@@ -7,18 +7,10 @@ extern crate rocket_multipart_form_data;
 
 use rocket::http::{ContentType, Status};
 use rocket::{Data, Response, Request, response};
-
-use rocket_multipart_form_data::{mime, RawField, Repetition};
-use rocket_multipart_form_data::{
-    MultipartFormData,
-    MultipartFormDataError,
-    MultipartFormDataField,
-    MultipartFormDataOptions,
-};
+use rocket_multipart_form_data::*;
 
 #[macro_use]
-use rocket_include_static_resources::static_response;
-use rocket_include_static_resources::static_resources_initialize;
+use rocket_include_static_resources::{static_response, static_resources_initialize};
 
 use rocket_include_static_resources::StaticResponse;
 use rocket_raw_response::RawResponse;
@@ -27,7 +19,7 @@ use image::*;
 
 use std::io::Cursor;
 use std::path::Path;
-use image::io::Reader;
+//use image::io::Reader;
 use rocket::response::Responder;
 
 
@@ -88,7 +80,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             // Separate text command from int amount - used for resize(n) and rotate(n)
             let cmd: Vec<&str> = text.split('-').collect();
 
-            match cmd[0].as_str() {
+            match cmd[0] {
                 "fliphori" => {
                     image_parameters.push(ApiCommand::FlipHorizontal);
                 }
@@ -171,7 +163,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                         img.grayscale();
                     }
                     ApiCommand::Resize(num) => {
-                        let percent = num/100 as f32;
+                        let percent = (num as f32)/100. as f32;
                         let new_width = img.width() * percent as u32;
                         let new_height = img.height() * percent as u32;
                         img.resize(new_width, new_height, imageops::FilterType::CatmullRom);
@@ -187,7 +179,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
             // write DynamicImage to buffer with some sort of format, then send back to client
             let mut buffer = Vec::new();
-            flipped.write_to(&mut buffer, ImageFormat::Jpeg);
+            img.write_to(&mut buffer, ImageFormat::Jpeg);
             Ok(RawResponse::from_vec(buffer, Some(file_name), content_type))
 
         }
