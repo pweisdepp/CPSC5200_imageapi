@@ -7,11 +7,7 @@ extern crate rocket_multipart_form_data;
 use rocket::http::{ContentType, Status};
 use rocket::{Data, Response, Request, response};
 use rocket_multipart_form_data::*;
-
-#[macro_use]
-use rocket_include_static_resources::{static_response, static_resources_initialize};
-
-use rocket_include_static_resources::StaticResponse;
+use rocket_include_static_resources::{StaticResponse, static_response, static_resources_initialize};
 use rocket_raw_response::RawResponse;
 use rocket::response::Responder;
 use image::*;
@@ -29,7 +25,9 @@ enum ApiCommand {
 }
 
 static HELP_RESPONSE: &str =
-    "Process your image using the API:\n
+    "\n
+    CPSC5200 Individual Project - Pete Weisdepp\n
+    Process your image using the API:\n
     Params:\n
             'image' - the path to your jpg or png image\n
             'params' - comma-separated commands\n
@@ -43,13 +41,11 @@ static HELP_RESPONSE: &str =
         resize-N -> Resize the image by N percent\n
         thumbnail -> Resize the image to 100x100 thumbnail\n
     Example: \n
-    curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/upload";
+    curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/upload\n";
 
-//TODO: Respond with API command help
 #[get("/")]
-fn index() -> StaticResponse {
-    static_response!("CPSC5200 Individual Assignment by Pete Weisdepp\n
-    Image processing using RestAPI, built in Rust using Rocket and Image crates")
+fn index() -> String {
+    String::from(HELP_RESPONSE)
 }
 
 #[post("/upload", data = "<data>")]
@@ -216,19 +212,12 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             Ok(RawResponse::from_vec(buffer, file_name.clone(), content_type))
 
         }
-        None => Err("Please input a file."),
+        None => Err("Please input a file.")
     }
 }
 
 fn main() {
     rocket::ignite()
-        .attach(StaticResponse::fairing(|resources| {
-            static_resources_initialize!(
-                resources,
-                "html-image-uploader",
-                "/home/pete/CLionProjects/CPSC5200_imageapi/src/form.html"
-            );
-        }))
         .mount("/", routes![index])
         .mount("/", routes![upload])
         .launch();
