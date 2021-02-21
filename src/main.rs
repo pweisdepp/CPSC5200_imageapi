@@ -14,14 +14,9 @@ use rocket_include_static_resources::{static_response, static_resources_initiali
 
 use rocket_include_static_resources::StaticResponse;
 use rocket_raw_response::RawResponse;
-
-use image::*;
-
-use std::io::Cursor;
-use std::path::Path;
-//use image::io::Reader;
 use rocket::response::Responder;
-
+use image::*;
+use std::path::Path;
 
 enum ApiCommand {
     FlipHorizontal,
@@ -34,10 +29,28 @@ enum ApiCommand {
     Rotate(u16),
 }
 
+static help_response: &str =
+    "Process your image using the API:\
+    Params:\
+            'image' - the path to your jpg or png image\
+            'params' - comma-separated commands\
+    Commands:\
+        fliph -> Flip image horizontally\
+        flipv -> Flip image vertically\
+        rotateleft -> Rotate image 90 degrees left\
+        rotateright -> Rotate image 90 degrees right\
+        rotate-N -> Rotate image by N degrees right\
+        grayscale -> Convert the image to grayscale\
+        resize-N -> Resize the image by N percent\
+        thumbnail -> Resize the image to 100x100 thumbnail\
+    Example: \
+    curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/upload";
+
 //TODO: Respond with API command help
 #[get("/")]
 fn index() -> StaticResponse {
-    static_response!("html-image-uploader")
+    static_response!("CPSC5200 Individual Assignment by Pete Weisdepp\
+    Image processing using RestAPI, built in Rust using Rocket and Image crates")
 }
 
 #[post("/upload", data = "<data>")]
@@ -81,10 +94,10 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                 let cmd: Vec<&str> = text.split('-').collect();
 
                 match cmd[0] {
-                    "fliphori" => {
+                    "fliph" => {
                         image_parameters.push(ApiCommand::FlipHorizontal);
                     }
-                    "flipvert" => {
+                    "flipv" => {
                         image_parameters.push(ApiCommand::FlipVertical);
                     }
                     "rotateleft" => {
