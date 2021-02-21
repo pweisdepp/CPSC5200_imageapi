@@ -85,10 +85,9 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         for text_field in text_fields {
             let text = text_field.text;
 
+            // Separate text command from int amount - used for resize(n) and rotate(n)
             let cmd: Vec<&str> = text.split('-').collect();
 
-
-            // TODO: match on parameters and add to vec - need to deal with rotation degrees too
             match cmd[0].as_str() {
                 "fliphori" => {
                     image_parameters.push(ApiCommand::FlipHorizontal);
@@ -119,7 +118,6 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         }
     }
 
-
     // Image processing
     let image = multipart_form_data.raw.remove("image");
 
@@ -127,11 +125,10 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         Some(mut image) => {
             // Get image data from field
             let raw = image.remove(0);
+
             // TODO: figure out content type and filename
             let content_type = raw.content_type;
             let file_name = raw.file_name.unwrap_or("Image".to_string());
-
-            let img = raw.raw;
 
             // TODO: match statement against jpeg and pngs
             // let filename = raw.file_name;
@@ -143,31 +140,52 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             //         .unwrap());
             // }
 
+            // Pull out image bytes from request
+            let img = raw.raw;
 
-
+            // Convert to DynamicImage in order to do processing
             let mut img = image::load_from_memory_with_format(
                 img.as_slice(),
                 ImageFormat::Jpeg)
                 .unwrap();
 
+            // Loop through and perform image commands
+            for command in image_parameters {
+                match command {
+                    ApiCommand::FlipHorizontal => {
+                        img.fliph();
+                    }
+                    ApiCommand::FlipVertical => {
+                        img.flipv();
+                    }
+                    ApiCommand::RotateLeft => {
+                        img.rotate270();
+                    }
+                    ApiCommand::RotateRight => {
+                        img.rotate90();
+                    }
+                    ApiCommand::Rotate(num) => {
+                        // TODO: import imageproc to do rotation by arbitrary amount
+                    }
+                    ApiCommand::ConvertToGray => {
+                        img.grayscale();
+                    }
+                    ApiCommand::Resize(num) => {
+                        let percent = num/100 as f32;
+                        let new_width = img.width() * percent as u32;
+                        let new_height = img.height() * percent as u32;
+                        img.resize(new_width, new_height, imageops::FilterType::CatmullRom);
+                    }
+                    ApiCommand::Thumbnail => {
+                        img.thumbnail(100, 100);
+                    }
+                    // Catch all the rest and do nothing
+                    _ => {}
+                }
 
-            // TODO: loop through params, matching on image commands
-            // for command in image_parameters {
-            //     match command {
-            //
-            //     }
-            //
-            // }
+            }
 
-
-
-            let flipped = img.fliph();
-
-
-
-
-
-            // write modified image to buffer, send back to client
+            // write DynamicImage to buffer with some sort of format, then send back to client
             let mut buffer = Vec::new();
             flipped.write_to(&mut buffer, ImageFormat::Jpeg);
             Ok(RawResponse::from_vec(buffer, Some(file_name), content_type))
