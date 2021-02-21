@@ -48,7 +48,7 @@ static HELP_RESPONSE: &str =
 //TODO: Respond with API command help
 #[get("/")]
 fn index() -> StaticResponse {
-    static_response!("CPSC5200 Individual Assignment by Pete Weisdepp\
+    static_response!("CPSC5200 Individual Assignment by Pete Weisdepp\n
     Image processing using RestAPI, built in Rust using Rocket and Image crates")
 }
 
