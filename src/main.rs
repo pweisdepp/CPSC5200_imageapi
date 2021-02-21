@@ -38,7 +38,8 @@ enum ApiCommand {
     Resize(u16),
     Thumbnail,
     RotateLeft,
-    RotateRight
+    RotateRight,
+    Rotate(u16),
 }
 
 //TODO: Respond with API command help
@@ -59,7 +60,6 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             .size_limit(32 * 1024 * 1024)
             .content_type_by_string(Some(mime::IMAGE_STAR))
             .unwrap(),
-
         ]
     );
 
@@ -78,18 +78,41 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         }
     };
 
-    let params = multipart_form_data.texts.get("params");
+    let params = multipart_form_data.texts.remove("params");
     let mut image_parameters = Vec::new();
 
     if let Some(text_fields) = params {
         for text_field in text_fields {
-            let _content_type = &text_field.content_type;
-            let _file_name = &text_field.file_name;
-            let text: &str = text_field.text.as_ref();
+            let text = text_field.text;
+
+            let cmd: Vec<&str> = text.split('-').collect();
+
+
             // TODO: match on parameters and add to vec - need to deal with rotation degrees too
-            match text {
+            match cmd[0].as_str() {
                 "fliphori" => {
                     image_parameters.push(ApiCommand::FlipHorizontal);
+                }
+                "flipvert" => {
+                    image_parameters.push(ApiCommand::FlipVertical);
+                }
+                "rotateleft" => {
+                    image_parameters.push(ApiCommand::RotateLeft);
+                }
+                "rotateright" => {
+                    image_parameters.push(ApiCommand::RotateRight);
+                }
+                "rotate" => {
+                    image_parameters.push(ApiCommand::Rotate(cmd[1].parse::<u16>().unwrap()));
+                }
+                "grayscale" => {
+                    image_parameters.push(ApiCommand::ConvertToGray);
+                }
+                "resize" => {
+                    image_parameters.push(ApiCommand::Resize(cmd[1].parse::<u16>().unwrap()));
+                }
+                "thumbnail" => {
+                    image_parameters.push(ApiCommand::Thumbnail);
                 }
                 _ => {}
             }
