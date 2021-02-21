@@ -46,10 +46,9 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         vec![
         // Image processing parameters have a max length of 10
         MultipartFormDataField::text("params").repetition(Repetition::fixed(10)),
-
-        // Image part of request
+        // Image has 4MB maximum size
         MultipartFormDataField::raw("image")
-            .size_limit(32 * 1024 * 1024)
+            .size_limit(4 * 1024 * 1024)
             .content_type_by_string(Some(mime::IMAGE_STAR))
             .unwrap(),
         ]
@@ -73,41 +72,47 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
     let params = multipart_form_data.texts.remove("params");
     let mut image_parameters = Vec::new();
 
-    if let Some(text_fields) = params {
-        for text_field in text_fields {
-            let text = text_field.text;
+    match params {
+        Some(text_fields) => {
+            for text_field in text_fields {
+                let text = text_field.text;
 
-            // Separate text command from int amount - used for resize(n) and rotate(n)
-            let cmd: Vec<&str> = text.split('-').collect();
+                // Separate text command from int amount - used for resize(n) and rotate(n)
+                let cmd: Vec<&str> = text.split('-').collect();
 
-            match cmd[0] {
-                "fliphori" => {
-                    image_parameters.push(ApiCommand::FlipHorizontal);
+                match cmd[0] {
+                    "fliphori" => {
+                        image_parameters.push(ApiCommand::FlipHorizontal);
+                    }
+                    "flipvert" => {
+                        image_parameters.push(ApiCommand::FlipVertical);
+                    }
+                    "rotateleft" => {
+                        image_parameters.push(ApiCommand::RotateLeft);
+                    }
+                    "rotateright" => {
+                        image_parameters.push(ApiCommand::RotateRight);
+                    }
+                    "rotate" => {
+                        image_parameters.push(ApiCommand::Rotate(cmd[1].parse::<u16>().unwrap()));
+                    }
+                    "grayscale" => {
+                        image_parameters.push(ApiCommand::ConvertToGray);
+                    }
+                    "resize" => {
+                        image_parameters.push(ApiCommand::Resize(cmd[1].parse::<u16>().unwrap()));
+                    }
+                    "thumbnail" => {
+                        image_parameters.push(ApiCommand::Thumbnail);
+                    }
+                    _ => {
+                        Err("Unrecognized command")
+                    }
                 }
-                "flipvert" => {
-                    image_parameters.push(ApiCommand::FlipVertical);
-                }
-                "rotateleft" => {
-                    image_parameters.push(ApiCommand::RotateLeft);
-                }
-                "rotateright" => {
-                    image_parameters.push(ApiCommand::RotateRight);
-                }
-                "rotate" => {
-                    image_parameters.push(ApiCommand::Rotate(cmd[1].parse::<u16>().unwrap()));
-                }
-                "grayscale" => {
-                    image_parameters.push(ApiCommand::ConvertToGray);
-                }
-                "resize" => {
-                    image_parameters.push(ApiCommand::Resize(cmd[1].parse::<u16>().unwrap()));
-                }
-                "thumbnail" => {
-                    image_parameters.push(ApiCommand::Thumbnail);
-                }
-                _ => {}
             }
         }
+        None => Err("No parameters specified")
+
     }
 
     // Image processing
@@ -121,8 +126,6 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             // TODO: figure out content type and filename
             let content_type = raw.content_type;
             let file_name = raw.file_name.unwrap_or("Image".to_string());
-
-            // TODO: match statement against jpeg and pngs
 
             let mut ext: Option<&str>= None;
             if let Some(name) = filename {
@@ -145,7 +148,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                     }
 
                     _ => {
-                        Err("Please upload a png or jpg")
+                        Err("Please upload a .png or .jpg image")
                     }
                 }
             }
@@ -190,7 +193,6 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                         img = img.thumbnail(100, 100);
                     }
                 }
-
             }
 
             // write DynamicImage to buffer with some sort of format, then send back to client
