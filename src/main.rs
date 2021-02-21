@@ -51,13 +51,15 @@ fn index() -> StaticResponse {
 fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'static str> {
     let options = MultipartFormDataOptions::with_multipart_form_data_fields(
         vec![
+        // Image processing parameters have a max length of 10
+        MultipartFormDataField::text("params").repetition(Repetition::fixed(10)),
+
         // Image part of request
         MultipartFormDataField::raw("image")
             .size_limit(32 * 1024 * 1024)
             .content_type_by_string(Some(mime::IMAGE_STAR))
             .unwrap(),
-        // Image processing parameters have a max length of 10
-        MultipartFormDataField::text("params").repetition(Repetition::fixed(10)),
+
         ]
     );
 
@@ -76,24 +78,23 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         }
     };
 
-    let params = multipart_form_data.texts.remove("params");
+    let params = multipart_form_data.texts.get("params");
+    let mut image_parameters = Vec::new();
 
-    // let mut image_parameters = Vec::new();
-    //
-    // if let Some(text_fields) = params {
-    //     for text_field in text_fields {
-    //         let _content_type = text_field.content_type;
-    //         let _file_name = text_field.file_name;
-    //         let text: &str = text_field.text.as_ref();
-    //         // TODO: match on parameters and add to vec - need to deal with rotation degrees too
-    //         match text {
-    //             "fliphori" => {
-    //                 image_parameters.push(ApiCommand::FlipHorizontal);
-    //             }
-    //             _ => {}
-    //         }
-    //     }
-    // }
+    if let Some(text_fields) = params {
+        for text_field in text_fields {
+            let _content_type = &text_field.content_type;
+            let _file_name = &text_field.file_name;
+            let text: &str = text_field.text.as_ref();
+            // TODO: match on parameters and add to vec - need to deal with rotation degrees too
+            match text {
+                "fliphori" => {
+                    image_parameters.push(ApiCommand::FlipHorizontal);
+                }
+                _ => {}
+            }
+        }
+    }
 
 
     // Image processing
@@ -103,19 +104,25 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
         Some(mut image) => {
             // Get image data from field
             let raw = image.remove(0);
+            // TODO: figure out content type and filename
+            let content_type = raw.content_type;
+            let file_name = raw.file_name.unwrap_or("Image".to_string());
 
             let img = raw.raw;
 
             // TODO: match statement against jpeg and pngs
             // let filename = raw.file_name;
-            // match filename
-            //
+            // let mut ext: Option<&str>= None;
+            // if let Some(name) = filename {
+            //     let stripped_ext = Some(Path::new(name.as_str())
+            //         .extension()
+            //         .and_then(|s|s.to_str())
+            //         .unwrap());
             // }
-            //
-            // let ext =
 
 
-            let mut img2 = image::load_from_memory_with_format(
+
+            let mut img = image::load_from_memory_with_format(
                 img.as_slice(),
                 ImageFormat::Jpeg)
                 .unwrap();
@@ -131,11 +138,9 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
 
 
-            let flipped = img2.fliph();
+            let flipped = img.fliph();
 
-            // TODO: figure out content type and filename
-            let content_type = raw.content_type;
-            let file_name = raw.file_name.unwrap_or("Image".to_string());
+
 
 
 
