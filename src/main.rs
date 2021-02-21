@@ -123,22 +123,40 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             let file_name = raw.file_name.unwrap_or("Image".to_string());
 
             // TODO: match statement against jpeg and pngs
-            // let filename = raw.file_name;
-            // let mut ext: Option<&str>= None;
-            // if let Some(name) = filename {
-            //     let stripped_ext = Some(Path::new(name.as_str())
-            //         .extension()
-            //         .and_then(|s|s.to_str())
-            //         .unwrap());
-            // }
+
+            let mut ext: Option<&str>= None;
+            if let Some(name) = filename {
+                let stripped_ext = Some(Path::new(name.as_str())
+                    .extension()
+                    .and_then(|s|s.to_str())
+                    .unwrap());
+                ext = stripped_ext;
+            }
+
+            let mut format: Option<ImageFormat>;
+            if let Some(format_from_ext) = ext {
+                match format_from_ext {
+                    "png" => {
+                        format = Some(ImageFormat::Png);
+                    }
+
+                    "jpg" => {
+                        format = Some(ImageFormat::Jpeg);
+                    }
+
+                    _ => {
+                        Err("Please upload a png or jpg")
+                    }
+                }
+            }
 
             // Pull out image bytes from request
-            let img = raw.raw;
+            let mut img = raw.raw;
 
             // Convert to DynamicImage in order to do processing
             let mut img = image::load_from_memory_with_format(
                 img.as_slice(),
-                ImageFormat::Jpeg)
+                format.unwrap())
                 .unwrap();
 
             // Loop through and perform image commands
@@ -171,8 +189,6 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                     ApiCommand::Thumbnail => {
                         img = img.thumbnail(100, 100);
                     }
-                    // Catch all the rest and do nothing
-                    _ => {}
                 }
 
             }
