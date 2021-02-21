@@ -145,31 +145,31 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
             for command in image_parameters {
                 match command {
                     ApiCommand::FlipHorizontal => {
-                        img.fliph();
+                        img = img.fliph();
                     }
                     ApiCommand::FlipVertical => {
-                        img.flipv();
+                        img = img.flipv();
                     }
                     ApiCommand::RotateLeft => {
-                        img.rotate270();
+                        img = img.rotate270();
                     }
                     ApiCommand::RotateRight => {
-                        img.rotate90();
+                        img = img.rotate90();
                     }
                     ApiCommand::Rotate(num) => {
                         // TODO: import imageproc to do rotation by arbitrary amount
                     }
                     ApiCommand::ConvertToGray => {
-                        img.grayscale();
+                        img = img.grayscale();
                     }
                     ApiCommand::Resize(num) => {
                         let percent = (num as f32)/100. as f32;
                         let new_width = img.width() * percent as u32;
                         let new_height = img.height() * percent as u32;
-                        img.resize(new_width, new_height, imageops::FilterType::CatmullRom);
+                        img = img.resize(new_width, new_height, imageops::FilterType::CatmullRom);
                     }
                     ApiCommand::Thumbnail => {
-                        img.thumbnail(100, 100);
+                        img = img.thumbnail(100, 100);
                     }
                     // Catch all the rest and do nothing
                     _ => {}
