@@ -4,12 +4,10 @@
 extern crate rocket;
 extern crate rocket_multipart_form_data;
 
-use rocket::http::{ContentType, Status};
-use rocket::{Data, Response, Request, response};
+use rocket::{Data, Response, Request, http::ContentType, http::Status};
 use rocket_multipart_form_data::*;
 use rocket_include_static_resources::{StaticResponse, static_response, static_resources_initialize};
 use rocket_raw_response::RawResponse;
-use rocket::response::Responder;
 use image::*;
 use std::path::Path;
 
@@ -41,14 +39,14 @@ static HELP_RESPONSE: &str =
         resize-N -> Resize the image by N percent\n
         thumbnail -> Resize the image to 100x100 thumbnail\n
     Example: \n
-    curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/upload\n";
+    curl -F params='fliph,grayscale' -F image=@/home/pete/test2.jpg --output /home/pete/returntest2.jpg localhost:8000/\n";
 
 #[get("/")]
 fn index() -> String {
     String::from(HELP_RESPONSE)
 }
 
-#[post("/upload", data = "<data>")]
+#[post("/", data = "<data>")]
 fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'static str> {
     let options = MultipartFormDataOptions::with_multipart_form_data_fields(
         vec![
@@ -76,11 +74,11 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
     };
 
     let params = multipart_form_data.texts.remove("params");
-    let mut image_parameters = Vec::new();
+    //let mut image_parameters = Vec::new();
 
-    match params {
+    let mut parameters = match params {
         Some(text_fields) => {
-
+            let mut image_parameters = Vec::new();
             let textfield = text_fields.get(0).unwrap();
             let text = &textfield.text;
 
@@ -121,11 +119,13 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                     }
                 }
             }
+            Some(image_parameters)
+
         }
         None => {
             return Err("No parameters specified");
         }
-    }
+    }.unwrap();
 
     // Image processing
     let image = multipart_form_data.raw.remove("image");
@@ -174,7 +174,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
                 .unwrap();
 
             // Loop through and perform image commands
-            for command in image_parameters {
+            for command in parameters {
                 match command {
                     ApiCommand::FlipHorizontal => {
                         img = img.fliph();
@@ -208,7 +208,7 @@ fn upload(content_type: &ContentType, data: Data) -> Result<RawResponse, &'stati
 
             // write DynamicImage to buffer with some sort of format, then send back to client
             let mut buffer = Vec::new();
-            img.write_to(&mut buffer, ImageFormat::Jpeg);
+            img.write_to(&mut buffer, format.unwrap());
             Ok(RawResponse::from_vec(buffer, file_name.clone(), content_type))
 
         }
