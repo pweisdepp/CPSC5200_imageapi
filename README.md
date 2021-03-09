@@ -1,12 +1,17 @@
-##Individual project for CPSC5200
+### Individual project for CPSC5200
 
 
-### Install instructions
+#### Running instructions
+
 #### Install rust:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
 
+#### Clone repository 
+
+```
 git clone https://github.com/pweisdepp/CPSC5200_imageapi.git
 
 cd CPSC5200_imageapi
